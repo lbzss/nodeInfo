@@ -1,38 +1,52 @@
 package node
 
 import (
-	"fmt"
+	"encoding/json"
 	"github.com/shirou/gopsutil/v4/net"
 )
 
 type NetConfig struct {
-	ProcessId   int32
-	Port        int32
-	ProcessName string
-	Status      string
+	ProcessId   int32  `json:"process_id,omitempty"`
+	LocalAddr   string `json:"local_addr,omitempty"`
+	LocalPort   int32  `json:"local_port,omitempty"`
+	RemoteAddr  string `json:"remote_addr,omitempty"`
+	RemotePort  int32  `json:"remote_port,omitempty"`
+	ProcessName string `json:"process_name,omitempty"`
+	Status      string `json:"status,omitempty"`
 }
 
 func (n *NetConfig) String() string {
-	return fmt.Sprintf("%#v", n)
+	data, _ := json.Marshal(n)
+	return string(data)
 }
 
 var netTypes = []string{"tcp", "udp"}
 
-func GetNetConfigData() ([]*NetConfig, error) {
+func GetNetConfigData() ([]*NetConfig, map[int32][]*NetConfig, error) {
 	var results []*NetConfig
+	pidMap := make(map[int32][]*NetConfig)
 	for _, netType := range netTypes {
 		connections, err := net.Connections(netType)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		for _, connection := range connections {
-			results = append(results, &NetConfig{
+			result := &NetConfig{
 				ProcessId:   connection.Pid,
-				Port:        int32(connection.Laddr.Port),
+				LocalAddr:   connection.Laddr.IP,
+				LocalPort:   int32(connection.Laddr.Port),
+				RemoteAddr:  connection.Raddr.IP,
+				RemotePort:  int32(connection.Raddr.Port),
 				ProcessName: "",
 				Status:      connection.Status,
-			})
+			}
+			results = append(results, result)
+			if ins, exist := pidMap[connection.Pid]; exist {
+				pidMap[connection.Pid] = append(ins, result)
+			} else {
+				pidMap[connection.Pid] = []*NetConfig{result}
+			}
 		}
 	}
-	return results, nil
+	return results, pidMap, nil
 }

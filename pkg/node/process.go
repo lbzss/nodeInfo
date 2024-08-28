@@ -1,33 +1,35 @@
 package node
 
 import (
-	"fmt"
+	"encoding/json"
 	"github.com/shirou/gopsutil/v4/process"
 	"time"
 )
 
 type PsProcessConfig struct {
-	Pid       int32
-	Name      string
-	StartTime string
-	Envs      []string
-	CmdLine   string
-	Status    []string
-	OpenFiles []string
+	Pid       int32    `json:"pid,omitempty"`
+	Name      string   `json:"name,omitempty"`
+	StartTime string   `json:"start_time,omitempty"`
+	Envs      []string `json:"envs,omitempty"`
+	CmdLine   string   `json:"cmd_line,omitempty"`
+	Status    []string `json:"status,omitempty"`
+	OpenFiles []string `json:"open_files,omitempty"`
 }
 
 func (p *PsProcessConfig) String() string {
-	return fmt.Sprintf("%#v", p)
+	data, _ := json.Marshal(p)
+	return string(data)
 }
 
-func GetProcessConfigData() ([]*PsProcessConfig, error) {
+func GetProcessConfigData() ([]*PsProcessConfig, map[int32][]*PsProcessConfig, error) {
 	var results []*PsProcessConfig
+	pidMap := make(map[int32][]*PsProcessConfig)
 	processes, err := process.Processes()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for _, processInfo := range processes {
-		results = append(results, &PsProcessConfig{
+		result := &PsProcessConfig{
 			Pid: processInfo.Pid,
 			Name: func() string {
 				name, err := processInfo.Name()
@@ -75,7 +77,14 @@ func GetProcessConfigData() ([]*PsProcessConfig, error) {
 				}
 				return results
 			}(),
-		})
+		}
+		results = append(results, result)
+		if ins, exist := pidMap[result.Pid]; exist {
+			pidMap[result.Pid] = append(ins, result)
+		} else {
+			pidMap[result.Pid] = []*PsProcessConfig{result}
+		}
+
 	}
-	return results, err
+	return results, pidMap, err
 }
