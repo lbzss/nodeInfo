@@ -1,0 +1,7 @@
+elasticsearch_address:
+  - http://1.2.3.4:9200
+user_name: foo
+password: bar
+index_prefix: nodeInfo
+server_address: 1.2.3.4
+server_port: 8080

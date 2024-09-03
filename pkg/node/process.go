@@ -21,9 +21,9 @@ func (p *PsProcessConfig) String() string {
 	return string(data)
 }
 
-func GetProcessConfigData() ([]*PsProcessConfig, map[int32][]*PsProcessConfig, error) {
+func GetProcessConfigData() ([]*PsProcessConfig, map[int32]*PsProcessConfig, error) {
 	var results []*PsProcessConfig
-	pidMap := make(map[int32][]*PsProcessConfig)
+	pidMap := make(map[int32]*PsProcessConfig)
 	processes, err := process.Processes()
 	if err != nil {
 		return nil, nil, err
@@ -79,10 +79,8 @@ func GetProcessConfigData() ([]*PsProcessConfig, map[int32][]*PsProcessConfig, e
 			}(),
 		}
 		results = append(results, result)
-		if ins, exist := pidMap[result.Pid]; exist {
-			pidMap[result.Pid] = append(ins, result)
-		} else {
-			pidMap[result.Pid] = []*PsProcessConfig{result}
+		if _, exist := pidMap[result.Pid]; !exist {
+			pidMap[result.Pid] = result
 		}
 
 	}

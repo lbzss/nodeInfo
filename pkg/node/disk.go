@@ -31,6 +31,9 @@ func GetDiskData() ([]*DiskInfo, error) {
 			FsType:     partition.Fstype,
 			Total: func() int64 {
 				stat, _ := disk.Usage(partition.Mountpoint)
+				if stat == nil {
+					return 0
+				}
 				return int64(stat.Total)
 			}(),
 		})
